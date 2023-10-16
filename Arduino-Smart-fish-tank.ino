@@ -16,8 +16,8 @@
 
 Servo servo1;
 
-#define TdsSensorPin A0               //ขา sensor
-#define VREF 5.0
+#define TdsSensorPin A0               //ขา sensor Tds
+#define VREF 5.0                      //set ค่าไฟฟ้า 5v
 #define SCOUNT 30
 int analogBuffer[SCOUNT];
 int analogBufferIndex = 0;
@@ -34,11 +34,13 @@ NTPClient timeClient(ntpUDP, "0.th.pool.ntp.org", utcOffsetInSeconds);
 
 #define LINE_TOKEN "lyKfoRLTwoi4UFIVcpFA63TrCKYN4TwVfgWQodKa7Vj"          //Token Line   Textheadได้เวลาเปลี่ยนน้ำ:
 
-#define Relay1 D3       //ต่อขา relay ไฟตู้
-#define Relay3 D1       //ต่อขา relay ปั๊มน้ำเข้า
-#define Relay4 D2       //ต่อขา relay ปั๊มน้ำออก
-#define servopin1 D4    //ต่อขา servo 
-#define Wartersensor D8 //ต่อขา Warter Sensor  
+#define Relay1 D3         //ต่อขา relay ไฟตู้
+#define Relay3 D1         //ต่อขา relay ปั๊มน้ำเข้า
+#define Relay4 D2         //ต่อขา relay ปั๊มน้ำออก
+#define servopin1 D4      //ต่อขา servo 
+#define Liquid_level D8   //ต่อขา Warter sensor_Liquid_level
+#define Liquid_level_2 D9 //ต่อขา Warter sensor_Liquid_level_2
+
 
 WidgetLED Relay1Blynk(V5);  //led app ไฟตู้
 WidgetLED Relay3Blynk(V6);  //led app น้ำเข้า  
@@ -48,7 +50,7 @@ WidgetLCD LCD(V4);          //lcd app
 
 int Btnpin = D5;            //Btn ปั๊มน้ำ
 int Btnpin2 = D6;           //Btn หลอดไฟ 
-int val = 0;
+int val = 0;                
 
 void setup() {
   Serial.begin(115200);
@@ -62,7 +64,7 @@ void setup() {
   pinMode(Relay1,OUTPUT);           //Relay ไฟตู้
     digitalWrite(Relay1,1);         //Relay ยังไม่ทำงาน HIGH
 
-  pinMode(Wartersensor, INPUT);
+  pinMode(Liquid_level, INPUT);
 
   servo1.attach(servopin1);          //Servo
   timeClient.update();
@@ -88,7 +90,7 @@ void loop() {
   Blynk.run();
   timeClient.update();  // อัปเดตเวลาจากเซิร์ฟเวอร์ NTP
 
-  val = digitalRead(Wartersensor);
+  val = digitalRead(Liquid_level);            //สร้างตัวแปรเก็บ ระดับน้ำ 
   int button = digitalRead(Btnpin); 
   int button2 = digitalRead(Btnpin2);
 
@@ -100,18 +102,18 @@ void loop() {
   //   onlamp();
   // }
 
-//Warter sensor 
-  Serial.println(val);
-  if (val > 100){
-    // digitalWrite(led, LOW);
-    // digitalWrite(buzzer, HIGH);
-    Serial.println("No Water");
-  }
-  if (val < 100){
-    // digitalWrite(led, HIGH);
-    // digitalWrite(buzzer, LOW);
-    Serial.println("Detected Water");
-  }
+//Warter sensor_Liquid_level
+  // Serial.println(val);
+  // if (val > 100){
+  //   // digitalWrite(led, LOW);
+  //   // digitalWrite(buzzer, HIGH);
+  //   Serial.println("No Water");
+  // }
+  // if (val < 100){
+  //   // digitalWrite(led, HIGH);
+  //   // digitalWrite(buzzer, LOW);
+  //   Serial.println("Detected Water");
+  // }
 
   // Serial.println(timeClient.getFormattedTime());     //ตัวตรวจสอบ Time server 
   // delay(1000);
@@ -120,19 +122,19 @@ void loop() {
   static unsigned long printTimepoint = millis();
   
   // Blynk.virtualWrite(V3, "ค่า :    " ,tdsValue, "    ppm");    //นำค่าtdsValueมาแสดงที่ Labeled Value ใน Blynk App
-  Blynk.virtualWrite(V8,tdsValue);                            //นำค่าtdsValueมาแสดงที่ Gauge  ใน Blynk App
+  Blynk.virtualWrite(V8,tdsValue);                               //นำค่าtdsValueมาแสดงที่ Gauge  ใน Blynk App
 
 //Sensor TDS
-  if (millis() - analogSampleTimepoint > 40U) {
+  if (millis() - analogSampleTimepoint > 40U) {                 //การหน่วงเวลา ms
     analogSampleTimepoint = millis();
     analogBuffer[analogBufferIndex] = analogRead(TdsSensorPin);
     analogBufferIndex = (analogBufferIndex + 1) % SCOUNT;
-  }
+  } 
 
-  if (millis() - printTimepoint > 800U) {
+  if (millis() - printTimepoint > 800U) {                       //การหน่วงเวลา ms
     printTimepoint = millis();
-    float averageVoltage = getAverage(analogBuffer, SCOUNT) * VREF / 1024.0;
-    float compensationCoefficient = 1.0 + 0.02 * (temperature - 25.0);
+    float averageVoltage = getAverage(analogBuffer, SCOUNT) * VREF / 1024.0;        
+    float compensationCoefficient = 1.0 + 0.02 * (temperature - 25.0);            //ค่าความต่างของอุณหภูมิ
     float compensationVoltage = averageVoltage / compensationCoefficient;
     tdsValue = (133.42 * pow(compensationVoltage, 3) - 255.86 * pow(compensationVoltage, 2) + 857.39 * compensationVoltage) * 0.5;
     
@@ -143,7 +145,7 @@ void loop() {
 
   if(tdsValue >= 600){
     LCD.clear();
-    LCD.print(0,0,"Turbid : Change");
+    LCD.print(0,0,"Turbid : Change");       
     LCD.print(0,1,"The Water");
   } else if (tdsValue <= 590){
     LCD.clear();
@@ -171,7 +173,7 @@ void loop() {
   
 }
 
-float getAverage(int data[], int count) {
+float getAverage(int data[], int count) {             // ฟังก์ชัน Sum getAverage 
   float sum = 0;
   for (int i = 0; i < count; i++) {
     sum += data[i];
@@ -217,13 +219,13 @@ void OnTDSValueReached_dangerous(){
         digitalWrite(Relay4, LOW);      //ปั๊มดูดน้ำออกทำงาน
         Relay3Blynk.on();
         LINE.notify("เริ่มต้นการเปลี่ยนถ่ายน้ำ");
-        delay(5000UL);                 //หน่วงเวลาดูดน้ำออก50วิ ในตู้เป็น Push Switch
+        delay(5000UL);                 //หน่วงเวลาดูดน้ำออก50วิ 
     } else {
         digitalWrite(Relay4, HIGH); 
         Relay3Blynk.off();
         digitalWrite(Relay3, LOW);      //ปั๊มดูดน้ำเข้าทำงาน
         Relay4Blynk.on();
-        delay(5000UL);                  //หน่วงเวลาดูดน้ำออก50วิ ในตู้เป็น Push Switch (50000UL)
+        delay(5000UL);                  //หน่วงเวลาดูดน้ำออก50วิ   
         digitalWrite(Relay3, HIGH);     //ปั๊มดูดน้ำเข้าไม่ทำงาน
         Relay4Blynk.off(); 
         LINE.notify("การเปลี่ยนถ่ายน้ำเสร็จสิ้น");
